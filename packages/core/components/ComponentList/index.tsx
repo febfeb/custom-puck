@@ -43,16 +43,30 @@ const ComponentList = ({
   children,
   title,
   id,
+  searchQuery = "",
 }: {
   id: string;
   children?: ReactNode;
   title?: string;
+  searchQuery?: string;
 }) => {
   const config = useAppStore((s) => s.config);
   const setUi = useAppStore((s) => s.setUi);
   const componentList = useAppStore((s) => s.state.ui.componentList);
 
   const { expanded = true } = componentList[id] || {};
+
+  const trimmedQuery = searchQuery.trim().toLowerCase();
+  const defaultKeys = Object.keys(config.components).filter((componentKey) => {
+    if (!trimmedQuery) return true;
+    const label = (
+      config.components[componentKey]["label"] ?? componentKey
+    ).toLowerCase();
+    return (
+      label.includes(trimmedQuery) ||
+      componentKey.toLowerCase().includes(trimmedQuery)
+    );
+  });
 
   return (
     <div className={getClassName({ isExpanded: expanded })}>
@@ -86,7 +100,7 @@ const ComponentList = ({
       <div className={getClassName("content")}>
         <Drawer>
           {children ||
-            Object.keys(config.components).map((componentKey) => {
+            defaultKeys.map((componentKey) => {
               return (
                 <ComponentListItem
                   key={componentKey}

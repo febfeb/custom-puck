@@ -2,7 +2,10 @@ import { ReactNode, useEffect, useState } from "react";
 import { ComponentList } from "../components/ComponentList";
 import { useAppStore } from "../store";
 
-export const useComponentList = () => {
+const matchesSearch = (haystack: string, needle: string) =>
+  haystack.toLowerCase().includes(needle.toLowerCase());
+
+export const useComponentList = (searchQuery: string = "") => {
   const [componentList, setComponentList] = useState<ReactNode[]>();
   const config = useAppStore((s) => s.config);
   const uiComponentList = useAppStore((s) => s.state.ui.componentList);
@@ -10,6 +13,7 @@ export const useComponentList = () => {
   useEffect(() => {
     if (Object.keys(uiComponentList).length > 0) {
       const matchedComponents: string[] = [];
+      const trimmedQuery = searchQuery.trim();
 
       let _componentList: ReactNode[];
 
@@ -27,13 +31,30 @@ export const useComponentList = () => {
             return null;
           }
 
+          const filteredComponents = category.components.filter(
+            (componentName) => {
+              if (!trimmedQuery) return true;
+              const componentConf = config.components[componentName] || {};
+              const label = (componentConf["label"] ??
+                componentName) as string;
+              return (
+                matchesSearch(label, trimmedQuery) ||
+                matchesSearch(componentName as string, trimmedQuery)
+              );
+            }
+          );
+
+          if (trimmedQuery && filteredComponents.length === 0) {
+            return null;
+          }
+
           return (
             <ComponentList
               id={categoryKey}
               key={categoryKey}
               title={category.title || categoryKey}
             >
-              {category.components.map((componentName, i) => {
+              {filteredComponents.map((componentName, i) => {
                 const componentConf = config.components[componentName] || {};
 
                 return (
@@ -54,8 +75,18 @@ export const useComponentList = () => {
         (component) => matchedComponents.indexOf(component) === -1
       );
 
+      const filteredRemaining = remainingComponents.filter((componentName) => {
+        if (!trimmedQuery) return true;
+        const componentConf = config.components[componentName] || {};
+        const label = (componentConf["label"] ?? componentName) as string;
+        return (
+          matchesSearch(label, trimmedQuery) ||
+          matchesSearch(componentName, trimmedQuery)
+        );
+      });
+
       if (
-        remainingComponents.length > 0 &&
+        filteredRemaining.length > 0 &&
         !uiComponentList.other?.components &&
         uiComponentList.other?.visible !== false
       ) {
@@ -65,7 +96,7 @@ export const useComponentList = () => {
             key="other"
             title={uiComponentList.other?.title || "Other"}
           >
-            {remainingComponents.map((componentName, i) => {
+            {filteredRemaining.map((componentName, i) => {
               const componentConf = config.components[componentName] || {};
 
               return (
@@ -83,7 +114,7 @@ export const useComponentList = () => {
 
       setComponentList(_componentList);
     }
-  }, [config.categories, config.components, uiComponentList]);
+  }, [config.categories, config.components, uiComponentList, searchQuery]);
 
   return componentList;
 };
