@@ -1,8 +1,8 @@
 import { defineConfig } from "tsup";
-import tsupconfig from "../tsup-config";
+import tsupconfig from "./config/tsup-base";
 import path from "path";
 import { build, type Plugin } from "esbuild";
-import { cssModulePlugin } from "../tsup-config/css-module-plugin";
+import { cssModulePlugin } from "./config/css-module-plugin";
 
 const packageRoot = path.resolve(import.meta.dirname);
 
@@ -70,7 +70,7 @@ const runtimeCssPlugin: Plugin = {
   name: "runtime-css",
   setup(buildApi) {
     buildApi.onResolve({ filter: /generated\/runtime-css/ }, (args) => {
-      if (!args.resolveDir.endsWith(path.join("core", "lib"))) {
+      if (!args.resolveDir.endsWith(path.sep + "lib")) {
         return undefined;
       }
 
